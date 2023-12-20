@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+</head>
+
+<body>
+  <h2>Thêm video</h2>
+  <label for="name">
+    Tên
+    <br><input type="text" id="name" /><br>
+    
+  </label><br>
+  <label for="description">
+    Mô tả
+    <br><input type="text" id="description" /><br>
+  </label><br>
+  <label>Danh sach playlist</label><br>
+  <input class="playlist" type="checkbox" id="haihuoc" name="haihuoc" value="1">
+  <label for="haihuoc"> Hài hước</label>
+  <input class="playlist" type="checkbox" id="kinhdi" name="kinhdi" value="2">
+  <label for="kinhdi"> Kinh dị</label>
+  <input class="playlist" type="checkbox" id="trinhtham" name="trinhtham" value="3">
+  <label for="trinhtham"> Trinh thám</label>
+  <input class="playlist" type="checkbox" id="hanhdong" name="hanhdong" value="4">
+  <label for="hanhdong"> Hành động</label><br>
+  <label for="link">
+    Link video
+    <br><input type="text" id="link" /><br>
+  </label><br>
+  <button type="button" onclick="addVideo()">Tao</button>
+  <button type="reset">Huy</button>
+
+  <script>
+
+    function addVideo() {
+      let video = {}
+      video.title = $('#name').val()
+      video.description = $('#description').val()
+      let playlistArray = document.querySelectorAll('.playlist:checked');
+      let playlists = []
+      for (let i = 0; i < playlistArray.length; i++) {
+        playlists.push(playlistArray[i].defaultValue)
+      }
+      video.playlistIds = playlists;
+      video.url = $('#link').val();
+
+      $.ajax({
+        type: "POST",
+        url: "http://localhost:8080/api/add",
+        data: JSON.stringify(video),
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (result) {
+          alert("success");
+        }
+      })
+    }
+
+  </script>
+</body>
+
+</html>

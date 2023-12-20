@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <title>Document</title>
+
+    <style>
+        /* CSS cho bảng */
+        table {
+            width: 100%;
+            /* Đảm bảo bảng chiếm toàn bộ chiều rộng của phần tử cha */
+            border-collapse: collapse;
+            /* Gộp các đường viền */
+        }
+
+        /* CSS cho các cột */
+        table th {
+            text-align: center;
+            /* Canh giữa tiêu đề cột */
+            background-color: #f2f2f2;
+            /* Màu nền cho tiêu đề cột */
+            padding: 10px;
+            /* Khoảng cách nội dung với đường viền */
+            border: 1px solid #ddd;
+            /* Đường viền */
+        }
+
+        /* CSS cho các hàng trong bảng */
+        table td {
+            text-align: center;
+            /* Canh giữa nội dung hàng */
+            padding: 10px;
+            /* Khoảng cách nội dung với đường viền */
+            border: 1px solid #ddd;
+            /* Đường viền */
+        }
+
+        /* CSS cho nút Xóa và Sửa */
+        .delete-button,
+        .edit-button {
+            background-color: #f44336;
+            /* Màu nền nút Xóa */
+            color: white;
+            /* Màu chữ nút Xóa */
+            padding: 5px 10px;
+            /* Khoảng cách nút Xóa với nội dung */
+            border: none;
+            /* Loại bỏ đường viền */
+            cursor: pointer;
+            /* Hiển thị biểu tượng con trỏ khi di chuột vào */
+            margin-right: 5px;
+            /* Khoảng cách giữa các nút */
+        }
+
+        /* CSS cho nút Sửa */
+        .edit-button {
+            background-color: #4CAF50;
+            /* Màu nền nút Sửa */
+        }
+
+        /* CSS cho nút Xóa khi di chuột vào */
+        .delete-button:hover {
+            background-color: #d32f2f;
+            /* Màu nền khi hover vào nút Xóa */
+        }
+
+        /* CSS cho nút Sửa khi di chuột vào */
+        .edit-button:hover {
+            background-color: #388e3c;
+            /* Màu nền khi hover vào nút Sửa */
+        }
+    </style>
+</head>
+
+<body>
+    <div id="videoDetails"></div>
+
+    <div id="editVideoForm" style="display: none;">
+        <h2>Sửa Video</h2>
+        <form id="videoEditForm">
+            <input type="hidden" id="editVideoId" name="id">
+            <label for="editVideoTitle">Tiêu đề:</label>
+            <input type="text" id="editVideoTitle" name="title">
+            <label for="editVideoDescription">Mô tả:</label>
+            <input type="text" id="editVideoDescription" name="description">
+            <label for="editVideoPlaylists">Danh sách Playlist:</label>
+            <input type="text" id="editVideoPlaylists" name="playlists">
+            <button type="submit">Lưu</button>
+            <button type="button" id="cancelEdit">Hủy</button>
+        </form>
+    </div>
+
+    <script>
+
+        $(document).ready(function () {
+
+            $.ajax({
+                url: "http://localhost:8080/api/show",
+                method: 'GET',
+                dataType: 'json',
+                success: function (data) {
+
+                    var videoDetailsTable = $('#videoDetails');
+
+
+                    var tableHtml = '<table>';
+                    tableHtml += '<thead><tr><th>Title</th><th>Description</th><th>Playlists</th><th>Actions</th></tr></thead>';
+                    tableHtml += '<tbody>';
+
+
+                    data.forEach(function (video) {
+                        var title = video.title;
+                        var description = video.description;
+                        var playlists = video.playlistResponseDTOList.map(function (playlist) {
+                            return playlist.name;
+                        }).join(', ');
+
+
+                        tableHtml += '<tr>';
+                        tableHtml += '<td>' + title + '</td>';
+                        tableHtml += '<td>' + description + '</td>';
+                        tableHtml += '<td>' + playlists + '</td>';
+                        tableHtml += '<td><button class="delete-button" data-video-id="' + video.id + '">Xóa</button> <button class="edit-button" data-video-id="' + video.id + '">Sửa</button></td>';
+                        tableHtml += '</tr>';
+                    });
+
+                    tableHtml += '</tbody>';
+                    tableHtml += '</table>';
+
+
+                    videoDetailsTable.append(tableHtml);
+
+
+                    $('.delete-button').click(function () {
+                        var videoId = $(this).data('video-id');
+
+                        deleteVideo(videoId);
+                    });
+
+
+                    $('.edit-button').click(function () {
+                        var videoId = $(this).data('video-id');
+
+                        var video = findVideoById(videoId);
+
+                        console.log(videoId);
+
+                        if (video) {
+
+                            $('#editVideoId').val(video.id);
+                            $('#editVideoTitle').val(video.title);
+                            $('#editVideoDescription').val(video.description);
+                         
+
+                            if (video && video.playlistResponseDTOList) {
+                                $('#editVideoPlaylists').val(video.playlistResponseDTOList.map(function (playlist) {
+                                    return playlist.name;
+                                }).join(', '));
+                            } else {
+                                console.error('Video or playlistResponseDTOList is undefined.');
+                            }
+
+
+
+                            $('#editVideoForm').show();
+                        }
+                    });
+                },
+                error: function () {
+
+                    console.error('Failed to fetch video details.');
+                }
+            });
+
+
+            function deleteVideo(videoId) {
+
+                $.ajax({
+                    url: 'http://localhost:8080/api/delete/' + videoId,
+                    method: 'DELETE',
+                    success: function () {
+
+                        $('#videoDetails').find('[data-video-id="' + videoId + '"]').closest('tr').remove();
+                    },
+                    error: function () {
+                        console.error('Failed to delete video with ID ' + videoId);
+                    }
+                });
+            }
+
+
+
+
+
+
+            $('#videoEditForm').submit(function (event) {
+                event.preventDefault();
+
+
+                var videoId = $('#editVideoId').val();
+                var updatedVideoData = {
+                    id: videoId,
+                    title: $('#editVideoTitle').val(),
+                    description: $('#editVideoDescription').val(),
+                    playlistResponseDTOList: $('#editVideoPlaylists').val().split(', ').map(function (playlistName) {
+                        return { name: playlistName };
+                    })
+                };
+
+
+                updateVideo(videoId, updatedVideoData);
+            });
+
+            $('#cancelEdit').click(function () {
+
+                $('#editVideoForm').hide();
+            });
+
+
+
+            function findVideoById(videoId) {
+                return new Promise(function (resolve, reject) {
+                    $.ajax({
+                        url: 'http://localhost:8080/api/' + videoId,
+                        method: 'GET',
+                        dataType: 'json',
+                        success: function (data) {
+                            var video = data;
+                            resolve(video);
+                        },
+                        error: function () {
+                            console.error('Failed to fetch video by ID ' + videoId);
+                            reject('Error occurred while fetching video.');
+                        }
+                    });
+                });
+            }
+
+
+
+
+
+            function updateVideo(videoId, updatedVideoData) {
+
+                $.ajax({
+                    url: 'http://localhost:8080/api/update/' + videoId,
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify(updatedVideoData),
+                    success: function () {
+
+                        $('#editVideoForm').hide();
+
+                        updateVideoInTable(updatedVideoData);
+                    },
+                    error: function () {
+                        console.error('Failed to update video with ID ' + videoId);
+                    }
+                });
+            }
+
+
+            function updateVideoInTable(updatedVideoData) {
+                var videoId = updatedVideoData.id;
+                var videoRow = $('#videoDetails').find('[data-video-id="' + videoId + '"]').closest('tr');
+                videoRow.find('td:eq(0)').text(updatedVideoData.title);
+                videoRow.find('td:eq(1)').text(updatedVideoData.description);
+                videoRow.find('td:eq(2)').text(updatedVideoData.playlistResponseDTOList.map(function (playlist) {
+                    return playlist.name;
+                }).join(', '));
+            }
+
+
+        });
+
+
+    </script>
+
+</body>
+
+</html>
